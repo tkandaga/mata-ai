@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MATA v2.5 - Advanced AI Tutoring System</title>
+  
+  <!-- No PyScript needed - using backend API -->
+  
+  <!-- MathJax for Mathematical Formulas -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true,
+        processRefs: true,
+        packages: {'[+]': ['base', 'ams', 'noerrors', 'noundefined', 'autoload']}
+      },
+      options: {
+        ignoreHtmlClass: 'tex2jax_ignore',
+        processHtmlClass: 'tex2jax_process',
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      },
+      startup: {
+        ready: function () {
+          MathJax.startup.defaultReady();
+          console.log('MathJax is ready');
+        }
+      }
+    };
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      background: #f8f9fa; /* Soft light background like dashboard */
+      height: 100vh; 
+      overflow: hidden; 
+    }
+    
+    .container { display: flex; height: 100vh; position: relative; }
+    
+    .particles { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+    .particle { 
+      position: absolute; 
+      width: 4px; 
+      height: 4px; 
+      background: rgba(255,255,255,0.3); 
+      border-radius: 50%; 
+      animation: float 6s ease-in-out infinite; 
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 1; }
+      50% { transform: translateY(-20px) rotate(180deg); opacity: 0.8; }
+    }
+    
+    .sidebar {
+      width: 280px;
+      background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%); /* Gradient background */
+      border-left: 1px solid #34495e; /* Left border since it's on the right */
+      padding: 20px;
+      z-index: 10;
+      overflow-y: auto;
+      transition: transform 0.3s ease-in-out;
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100vh;
+      box-shadow: 
+        -5px 0 15px rgba(0, 0, 0, 0.3),
+        inset 1px 0 0 rgba(255, 255, 255, 0.1); /* Bevel effect */
+    }
+    
+    .sidebar.hidden {
+      transform: translateX(100%);
+    }
+    
+    .toggle-sidebar {
+      position: fixed;
+      top: 20px;
+      right: 300px; /* Closer to sidebar when closed */
+      z-index: 1000;
+      background: linear-gradient(135deg, #ff6b35, #f7931e); /* Orange gradient */
+      border: none;
+      border-radius: 50%;
+      width: 45px;
+      height: 45px;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 
+        0 4px 8px rgba(255, 107, 53, 0.4),
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3); /* Bevel effect */
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .toggle-sidebar:hover {
+      transform: scale(1.1) translateY(-2px);
+      box-shadow: 
+        0 6px 12px rgba(255, 107, 53, 0.5),
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+    
+    .toggle-sidebar.sidebar-open {
+      right: 300px; /* Stay close to sidebar when open */
+    }
+    
+    .logo {
+      text-align: center;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 30px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    /* Mode AI Styles */
+    .focus-modes {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    
+    .focus-mode {
+      padding: 10px;
+      border: 2px solid #00bcd4; /* Cyan border */
+      border-radius: 8px;
+      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Bevel effect */
+    }
+    
+    .focus-mode:hover {
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      border-color: #00bcd4;
+      transform: translateY(-1px);
+      box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    
+    .focus-mode.active {
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      border-color: #00bcd4;
+      box-shadow: 
+        0 4px 8px rgba(52, 152, 219, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    
+    .feature-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    
+    .feature-btn {
+      padding: 8px;
+      border: 2px solid #00bcd4; /* Cyan border */
+      border-radius: 6px;
+      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 500;
+      box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Bevel effect */
+    }
+    
+    .feature-btn:hover {
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      border-color: #00bcd4;
+      transform: translateY(-1px);
+      box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      color: #ecf0f1;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #34495e;
+      border-radius: 8px;
+      background: #34495e;
+      color: white;
+      font-size: 14px;
+    }
+    
+    .form-group input::placeholder,
+    .form-group textarea::placeholder {
+      color: #bdc3c7;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #3498db;
+      background: #34495e;
+    }
+    
+    .form-group select option {
+      background: #2a2a2a;
+      color: white;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 14px;
+      margin-bottom: 10px;
+      box-shadow: 
+        0 3px 6px rgba(52, 152, 219, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2); /* Bevel effect */
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 6px 12px rgba(52, 152, 219, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      background: linear-gradient(135deg, #2980b9 0%, #1f5f8b 100%);
+    }
+    
+    .btn.btn-secondary {
+      background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+      box-shadow: 
+        0 3px 6px rgba(149, 165, 166, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn.btn-secondary:hover {
+      background: linear-gradient(135deg, #7f8c8d 0%, #6c7b7d 100%);
+      box-shadow: 
+        0 6px 12px rgba(149, 165, 166, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn.btn-logout {
+      background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+      border: none;
+      color: white;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 
+        0 3px 6px rgba(231, 76, 60, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn.btn-logout:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 6px 12px rgba(231, 76, 60, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+    }
+    
+    /* Accordion Menu Styles */
+    .menu-section {
+      margin-bottom: 15px;
+      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      border-radius: 12px;
+      border: 1px solid #2c3e50;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: 
+        0 3px 6px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1); /* Bevel effect */
+    }
+    
+    .menu-header {
+      padding: 15px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      transition: all 0.3s ease;
+      user-select: none;
+    }
+    
+    .menu-header:hover {
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    }
+    
+    .menu-header.active {
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    }
+    
+    .menu-title {
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .menu-arrow {
+      color: #ecf0f1;
+      font-size: 16px;
+      transition: transform 0.3s ease;
+    }
+    
+    .menu-header.active .menu-arrow {
+      transform: rotate(180deg);
+    }
+    
+    .menu-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      padding: 0 15px;
+    }
+    
+    .menu-content.active {
+      max-height: 1000px;
+      padding: 15px;
+    }
+
+    
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 10;
+      margin-right: 280px; /* Space for right sidebar */
+      transition: margin-right 0.3s ease-in-out;
+    }
+    
+    .main-content.sidebar-hidden {
+      margin-right: 0;
+    }
+    
+    .header {
+      padding: 20px 30px;
+      text-align: center;
+      color: #2c3e50; /* Dark text on light background */
+      background: white;
+      border-bottom: 1px solid #ecf0f1;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #2c3e50;
+    }
+    
+    .header p {
+      font-size: 16px;
+      color: #7f8c8d;
+    }
+    
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: white; /* WHITE BACKGROUND FOR CHAT AREA */
+    }
+    
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      background: white; /* WHITE BACKGROUND */
+    }
+    
+    .chat-history::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .chat-history::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    
+    .chat-history::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 3px;
+    }
+    
+    .chat-history::-webkit-scrollbar-thumb:hover {
+      background: #999;
+    }
+    
+    .user-message,
+    .ai-message {
+      max-width: 85%;
+      padding: 15px 20px;
+      border-radius: 18px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .user-message {
+      align-self: flex-end;
+      background: #3498db;
+      color: white;
+      margin-left: auto;
+    }
+    
+    .ai-message {
+      align-self: flex-start;
+      background: white;
+      color: #2c3e50;
+      border: 1px solid #ecf0f1;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .ai-message strong {
+      color: #3498db;
+    }
+    
+    .loading {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(255,255,255,0.9);
+      margin: 10px 20px;
+      border-radius: 12px;
+      color: #333;
+      gap: 15px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .loading.show {
+      display: flex;
+    }
+    
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #ecf0f1;
+      border-top: 2px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .input-area {
+      padding: 20px;
+      background: rgba(255,255,255,0.95);
+      border-top: 1px solid #dee2e6;
+      display: flex;
+      gap: 15px;
+      align-items: flex-end;
+    }
+    
+    .input-container {
+      flex: 1;
+    }
+    
+    .question-input {
+      width: 100%;
+      padding: 15px 20px;
+      border: 1px solid #dee2e6;
+      border-radius: 25px;
+      background: white;
+      color: #333;
+      font-size: 16px;
+      resize: none;
+      transition: all 0.3s ease;
+      font-family: inherit;
+      line-height: 1.4;
+      min-height: 50px;
+      max-height: 120px;
+    }
+    
+    .question-input::placeholder {
+      color: #6c757d;
+    }
+    
+    .question-input:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+    
+    .send-btn {
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 
+        0 3px 6px rgba(52, 152, 219, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2); /* Bevel effect */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .send-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 
+        0 6px 12px rgba(52, 152, 219, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      background: linear-gradient(135deg, #2980b9 0%, #1f5f8b 100%);
+    }
+    
+    .send-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .error-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: rgba(220, 53, 69, 0.95);
+      color: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      z-index: 10000;
+      max-width: 400px;
+      width: 90%;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .error-popup.show {
+      transform: translate(-50%, -50%) scale(1);
+    }
+    
+    .error-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    .error-message {
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+    
+    .error-close {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      float: right;
+    }
+    
+    .error-close:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    
+    .provider-info {
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+    
+    .conversation-stats {
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.9);
+      line-height: 1.5;
+    }
+    
+    .mode-indicator {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 10px;
+      text-transform: uppercase;
+      background: #ecf0f1;
+      color: #3498db;
+      border: 1px solid #bdc3c7;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        max-height: 70vh;
+      }
+      
+      .sidebar.hidden {
+        transform: translateY(100%);
+      }
+      
+      .sidebar:not(.hidden) {
+        transform: translateY(0);
+      }
+      
+      .toggle-sidebar {
+        bottom: 20px;
+        top: auto;
+        right: 20px; /* Keep on right side for mobile */
+        left: auto;
+        transform: none;
+      }
+      
+      .toggle-sidebar.sidebar-open {
+        right: 20px; /* Keep on right side for mobile */
+        left: auto;
+        transform: none;
+        bottom: 20px;
+      }
+      
+      .feature-buttons {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* PyScript loading indicators */
+    .pyscript-loading {
+      text-align: center;
+      padding: 20px;
+      color: rgba(255,255,255,0.8);
+    }
+  </style>
+</head>
+<body>
+  <!-- No PyScript config needed -->
+
+  <div class="container">
+    <div id="particles" class="particles"></div>
+    
+    <button class="toggle-sidebar" id="toggleSidebar">☰</button>
+    
+    <div class="sidebar">
+      <div class="logo">🎓 MATA v2.5</div>
+      
+      <!-- User Info Section -->
+      <div class="menu-section">
+        <div class="menu-header active" onclick="toggleMenu('userInfo')">
+          <div class="menu-title">
+            <span>👤</span>
+            User Info
+          </div>
+          <div class="menu-arrow">▼</div>
+        </div>
+        <div class="menu-content active" id="userInfo">
+          <div class="form-group">
+            <div id="welcomeMessage" style="color: white; text-align: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 15px; font-weight: 600;">
+              👋 Selamat datang!
+            </div>
+            <button class="btn btn-logout" onclick="logout()">
+              🚪 Logout
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Mode AI Section -->
+      <div class="menu-section">
+        <div class="menu-header active" onclick="toggleMenu('modeAi')">
+          <div class="menu-title">
+            <span>🧠</span>
+            Mode AI
+          </div>
+          <div class="menu-arrow">▼</div>
+        </div>
+        <div class="menu-content active" id="modeAi">
+          <div class="form-group">
+            <label>Fokus</label>
+            <div class="focus-modes">
+              <div class="focus-mode active" data-mode="penjelasan">
+                📚 Penjelasan Konsep
+              </div>
+              <div class="focus-mode" data-mode="jawab_soal">
+                🔧 Jawab Soal
+              </div>
+              <div class="focus-mode" data-mode="analisis">
+                📊 Analisis Mendalam
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Fitur Tambahan</label>
+            <div class="feature-buttons">
+              <div class="feature-btn" onclick="generateVisualization()">
+                📈 Visualisasi
+              </div>
+              <div class="feature-btn" onclick="showFeatureInfo('animasi')">
+                🎬 Animasi Interaktif
+              </div>
+              <div class="feature-btn" onclick="generateProblem()">
+                📝 Generate Soal
+              </div>
+              <div class="feature-btn" onclick="showFeatureInfo('referensi')">
+                📖 Referensi
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Learning Profile Section -->
+      <div class="menu-section">
+        <div class="menu-header" onclick="toggleMenu('learningProfile')">
+          <div class="menu-title">
+            <span>👤</span>
+            Learning Profile
+          </div>
+          <div class="menu-arrow">▼</div>
+        </div>
+        <div class="menu-content" id="learningProfile">
+          <div class="form-group">
+            <label>Student Name</label>
+            <input type="text" id="userName" placeholder="Your Name" value="Siswa">
+          </div>
+          <div class="form-group">
+            <label>Subject</label>
+            <select id="subject">
+              <option value="Matematika">Matematika</option>
+              <option value="Fisika">Fisika</option>
+              <option value="Kimia">Kimia</option>
+              <option value="Biologi">Biologi</option>
+              <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+              <option value="Bahasa Inggris">Bahasa Inggris</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Grade Level</label>
+            <select id="grade">
+              <option value="SD">SD (Elementary)</option>
+              <option value="SMP">SMP (Middle School)</option>
+              <option value="SMA">SMA (High School)</option>
+              <option value="Kuliah" selected>Kuliah (University)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Learning Mode</label>
+            <select id="brainLevel">
+              <option value="auto">🤖 Auto (Smart Detection)</option>
+              <option value="eksplisit">📖 Explicit (Detailed Steps)</option>
+              <option value="prosedural">🔧 Procedural (Methods Only)</option>
+              <option value="konseptual">💡 Conceptual (Understanding)</option>
+              <option value="non_intervensi">⚡ Minimal (Brief Feedback)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Configuration Section -->
+      <div class="menu-section">
+        <div class="menu-header" onclick="toggleMenu('configuration')">
+          <div class="menu-title">
+            <span>⚙️</span>
+            Configuration
+          </div>
+          <div class="menu-arrow">▼</div>
+        </div>
+        <div class="menu-content" id="configuration">
+          <div class="form-group">
+            <label>AI Provider</label>
+            <select id="apiProvider">
+              <option value="claude">Anthropic Claude</option>
+              <option value="openai">OpenAI GPT</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>API Key</label>
+            <input type="password" id="apiKey" placeholder="sk-ant-api03-...">
+            <div class="provider-info" id="providerInfo">
+              Masukkan API key dari <strong>Anthropic Console</strong><br>Format: sk-ant-api03-...
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Session Info</label>
+            <div class="conversation-stats" id="conversationStats">
+              📊 Exchanges: 0<br>
+              🧠 Memory: Active<br>
+              🆔 Session: New
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Actions</label>
+            <button class="btn" onclick="saveSettings()">💾 Save Settings</button>
+            <button class="btn" onclick="testApi()">🧪 Test API</button>
+            <button class="btn btn-secondary" onclick="resetChat()">🗑️ Clear Chat</button>
+            <button class="btn btn-secondary" onclick="resetSettings()">🔄 Reset Settings</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="main-content">
+      <div class="header">
+        <h1>🎓 MATA v2.5 - Advanced AI Tutoring System</h1>
+        <p>🚀 Enhanced with PyScript & Advanced AI Features</p>
+      </div>
+      
+      <div class="chat-container">
+        <div class="chat-history" id="chatHistory">
+          <div class="ai-message" id="initialWelcomeMessage">
+            <strong>🤖 MATA v2.5 AI Tutor siap membantu!</strong><br><br>
+            
+            ✨ <strong>Fitur Baru v2.5 (Frontend-Backend Edition):</strong><br>
+            🎨 <strong>Stable Frontend</strong> - Interface yang stabil dan responsif!<br>
+            🔧 <strong>Backend API</strong> - AI integration yang dapat diupgrade tanpa mengganggu UI<br>
+            🧠 <strong>Mode AI Eksplisit</strong> - Pilih fokus: Penjelasan, Jawab Soal, atau Analisis<br>
+            🎨 <strong>Interface Elegan</strong> - Background chat putih dengan balloon ungu<br>
+            🔧 <strong>Fitur Tambahan</strong> - Visualisasi, Animasi, Generate Soal, Referensi<br><br>
+            
+            📚 <strong>Cara Menggunakan:</strong><br>
+            1. Masukkan API key di Configuration<br>
+            2. Pilih <strong>Mode Fokus</strong> sesuai kebutuhan<br>
+            3. Ketik pertanyaan atau soal Anda<br>
+            4. AI akan merespons sesuai mode yang dipilih<br><br>
+            
+            🧠 <strong>Memory Active</strong> - Saya ingat konteks percakapan<br>
+            📋 <strong>Auto-Structured</strong> - Respons terstruktur sesuai mode<br><br>
+            
+            <div id="api-status" style="background: #ecf0f1; padding: 10px; border-radius: 8px; margin-top: 10px;">
+              <strong>🔄 Status:</strong> <span id="status-text" style="color: #3498db;">Ready to connect to backend API</span><br>
+              <small style="color: #7f8c8d; margin-top: 5px; display: block;">
+                <strong>⚠️ Important:</strong> Pastikan backend server sudah berjalan di http://localhost:8090
+              </small>
+            </div>
+            
+            <strong>Pilih mode dan mulai belajar!</strong> 🚀
+          </div>
+        </div>
+        
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <div>🧠 Processing with AI intelligence...</div>
+        </div>
+        
+        <div class="input-area">
+          <div class="input-container">
+            <textarea 
+              id="questionInput" 
+              class="question-input" 
+              placeholder="Ketik pertanyaan Anda di sini... (Mode saat ini akan menentukan gaya jawaban)"
+              rows="2"
+            ></textarea>
+          </div>
+          <button class="send-btn" id="sendBtn" onclick="sendQuestion()">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="error-popup" id="errorPopup">
+    <div class="error-title">❌ Error</div>
+    <div class="error-message" id="errorMessage"></div>
+    <button class="error-close" onclick="hideError()">Tutup</button>
+  </div>
+
+  <!-- JavaScript API Integration -->
+  <script>
+    // Global variables
+    let sessionId = null;
+    let conversationCount = 0;
+    let currentFocusMode = 'penjelasan';
+    
+    // Check login status
+    function checkLoginStatus() {
+      const isLoggedIn = localStorage.getItem('mataLoggedIn') === 'true';
+      const username = localStorage.getItem('mataUsername');
+      
+      if (!isLoggedIn) {
+        window.location.href = 'login.html';
+        return false;
+      }
+      
+      // Update UI with username
+      if (username) {
+        const userNameInput = document.getElementById('userName');
+        if (userNameInput && userNameInput.value === 'Siswa') {
+          userNameInput.value = username;
+        }
+        
+        // Update welcome message
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        if (welcomeMessage) {
+          welcomeMessage.textContent = `👋 Selamat datang, ${username}!`;
+        }
+      }
+      
+      return true;
+    }
+    
+    // Logout function
+    function logout() {
+      if (confirm('Yakin ingin keluar dari MATA?')) {
+        // Clear all login-related data
+        localStorage.removeItem('mataLoggedIn');
+        localStorage.removeItem('mataUsername');
+        localStorage.removeItem('mataLoginTime');
+        
+        // Clear any other MATA-related data if needed
+        localStorage.removeItem('mataSettings');
+        
+        // Redirect to login page
+        window.location.href = 'login.html';
+      }
+    }
+
+    // Generate session ID
+    function generateSessionId() {
+      return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // Update conversation stats
+    function updateConversationStats() {
+      const statsDiv = document.getElementById('conversationStats');
+      const sessionShort = sessionId ? sessionId.substr(-8) : 'New';
+      statsDiv.innerHTML = `📊 Exchanges: ${conversationCount}<br>🧠 Memory: Active<br>🆔 Session: ${sessionShort}`;
+    }
+
+    // Show/hide loading indicator
+    function showLoading(show = true) {
+      const loadingDiv = document.getElementById('loading');
+      if (show) {
+        loadingDiv.classList.add('show');
+      } else {
+        loadingDiv.classList.remove('show');
+      }
+    }
+
+    // Show error popup
+    function showError(message) {
+      document.getElementById('errorMessage').innerHTML = message;
+      document.getElementById('errorPopup').classList.add('show');
+    }
+
+    // Hide error popup
+    function hideError() {
+      document.getElementById('errorPopup').classList.remove('show');
+    }
+
+    // Add message to chat history
+    function addMessage(message, sender, focusMode = null, model = null, interactiveHTML = null) {
+      const chatHistory = document.getElementById('chatHistory');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `${sender}-message`;
+      
+      if (sender === 'user') {
+        messageDiv.innerHTML = `<strong>👤 Anda:</strong><br><br>${message.replace(/\n/g, '<br>')}`;
+      } else {
+        const indicator = focusMode ? `<span class="mode-indicator">${focusMode}</span>` : '';
+        
+        let formattedMessage = message
+          .replace(/\n/g, '<br>')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+        // Simple formatting without LaTeX interference
+        formattedMessage = formattedMessage
+          .replace(/^## (.*$)/gim, '<div style="font-weight: bold; color: #3498db; margin: 15px 0 10px 0; font-size: 18px; border-left: 4px solid #3498db; padding-left: 10px;">$1</div>')
+          .replace(/^### (.*$)/gim, '<div style="font-weight: bold; color: #2c3e50; margin: 12px 0 8px 0; font-size: 16px;">$1</div>')
+          .replace(/^- (.*$)/gim, '<li style="margin: 5px 0; list-style-type: disc; margin-left: 20px;">$1</li>');
+        
+        // Debug logging
+        console.log('🔍 DEBUG: Frontend message formatting:');
+        console.log('  - Original message length:', message.length);
+        console.log('  - Final formatted message length:', formattedMessage.length);
+        console.log('  - Contains HTML5 elements:', /<(canvas|svg|script|div.*style)/i.test(formattedMessage));
+        
+        messageDiv.innerHTML = `<strong>🤖 AI Tutor:</strong>${indicator}<br><br>${formattedMessage}`;
+      }
+      
+      // Handle pure HTML visualization (no explanations, just code)
+      if (interactiveHTML) {
+        console.log('🎯 DEBUG: Rendering PURE HTML visualization in iframe');
+        console.log('  - HTML length:', interactiveHTML.length);
+        console.log('  - Contains DOCTYPE:', interactiveHTML.includes('<!DOCTYPE'));
+        console.log('  - HTML preview:', interactiveHTML.substring(0, 100) + '...');
+        
+        // Clear the message content since we only want the visualization
+        messageDiv.innerHTML = `<strong>🤖 AI Tutor:</strong> ${indicator}<br><br><div style="color: #27ae60; font-weight: bold;">📊 Visualisasi Interaktif:</div>`;
+        
+        // Buat iframe untuk isolated rendering
+        const iframeContainer = document.createElement('div');
+        iframeContainer.style.cssText = 'border: 2px solid #3498db; border-radius: 10px; margin: 15px 0; background: #f8f9fa; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+        
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'width: 100%; height: 600px; border: none; display: block; border-radius: 8px;';
+        iframe.sandbox = 'allow-scripts allow-same-origin'; // Security
+        
+        iframeContainer.appendChild(iframe);
+        messageDiv.appendChild(iframeContainer);
+        
+        // Inject HTML ke iframe
+        iframe.onload = function() {
+          try {
+            iframe.contentDocument.open();
+            iframe.contentDocument.write(interactiveHTML);
+            iframe.contentDocument.close();
+            console.log('✅ Pure HTML visualization loaded successfully');
+          } catch (error) {
+            console.error('❌ Error loading pure HTML visualization:', error);
+            // Show error in iframe
+            iframe.contentDocument.body.innerHTML = `
+              <div style="padding: 20px; color: #e74c3c; text-align: center;">
+                <h3>❌ Error Loading Visualization</h3>
+                <p>${error.message}</p>
+              </div>
+            `;
+          }
+        };
+      }
+      
+      chatHistory.appendChild(messageDiv);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+      
+      // Execute any JavaScript in HTML5 visualizations
+      setTimeout(() => {
+        const scripts = messageDiv.querySelectorAll('script');
+        scripts.forEach((script, index) => {
+          try {
+            // Create new script element and execute
+            const newScript = document.createElement('script');
+            newScript.textContent = script.textContent;
+            newScript.id = `mata-script-${Date.now()}-${index}`;
+            document.head.appendChild(newScript);
+            
+            // Remove after a short delay to allow execution
+            setTimeout(() => {
+              const scriptElement = document.getElementById(newScript.id);
+              if (scriptElement) {
+                document.head.removeChild(scriptElement);
+              }
+            }, 100);
+            
+            console.log('✅ HTML5 visualization script executed');
+          } catch (e) {
+            console.log('❌ HTML5 visualization script failed:', e);
+          }
+        });
+        
+        // Initialize any Canvas elements
+        const canvases = messageDiv.querySelectorAll('canvas');
+        canvases.forEach(canvas => {
+          console.log('🎨 Canvas element found:', canvas.id || 'unnamed');
+          // Canvas will be ready for JavaScript manipulation
+        });
+        
+        // Initialize any SVG elements
+        const svgs = messageDiv.querySelectorAll('svg');
+        svgs.forEach(svg => {
+          console.log('📊 SVG element found:', svg.id || 'unnamed');
+          // SVG will be ready for JavaScript manipulation
+        });
+      }, 200);
+      
+      // Process MathJax if available
+      if (window.MathJax) {
+        try {
+          // Wait for MathJax to be ready
+          if (window.MathJax.startup && window.MathJax.startup.document) {
+            window.MathJax.typesetPromise([messageDiv]).then(() => {
+              console.log('MathJax rendering completed');
+            }).catch((e) => {
+              console.log('MathJax typeset failed:', e);
+            });
+          } else {
+            // Fallback: try to render after a short delay
+            setTimeout(() => {
+              if (window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([messageDiv]);
+              }
+            }, 100);
+          }
+        } catch (e) {
+          console.log('MathJax typeset failed:', e);
+        }
+      }
+    }
+
+    // Test API connection
+    async function testApi() {
+      const apiProvider = document.getElementById('apiProvider').value;
+      const apiKey = document.getElementById('apiKey').value;
+      
+      if (!apiKey) {
+        showError('Masukkan API key terlebih dahulu!');
+        return;
+      }
+
+      try {
+        showLoading(true);
+        
+        const response = await fetch('http://localhost:8090/api/test-api', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            api_provider: apiProvider,
+            api_key: apiKey
+          })
+        });
+
+        const result = await response.json();
+        showLoading(false);
+
+        if (result.success) {
+          alert(`✅ API connection berhasil!\nModel: ${result.model}`);
+        } else {
+          showError(`❌ API test gagal: ${result.error}`);
+        }
+      } catch (error) {
+        showLoading(false);
+        if (error.message.includes('fetch')) {
+          showError(`❌ Backend server tidak berjalan!\n\nSilakan jalankan backend server terlebih dahulu:\n1. Buka terminal/command prompt\n2. Masuk ke folder MATA v.2.0\n3. Jalankan: python mata_v2.5.py\n4. Tunggu sampai server berjalan di http://localhost:8090\n5. Refresh halaman ini`);
+        } else {
+          showError(`❌ Error: ${error.message}`);
+        }
+      }
+    }
+
+    // Send question to API
+    async function sendQuestion() {
+      const questionInput = document.getElementById('questionInput');
+      const question = questionInput.value.trim();
+      
+      if (!question) {
+        showError('Masukkan pertanyaan terlebih dahulu!');
+        return;
+      }
+
+      const apiProvider = document.getElementById('apiProvider').value;
+      const apiKey = document.getElementById('apiKey').value;
+      const userName = document.getElementById('userName').value;
+      const brainLevel = document.getElementById('brainLevel').value;
+      const subject = document.getElementById('subject').value;
+      const grade = document.getElementById('grade').value;
+
+      if (!apiKey) {
+        showError('⚠️ API key belum diatur!\nSilakan masuk ke pengaturan dan isi API key terlebih dahulu.');
+        return;
+      }
+
+      addMessage(question, 'user');
+      questionInput.value = '';
+      questionInput.style.height = 'auto';
+      
+      showLoading(true);
+
+      try {
+        const response = await fetch('http://localhost:8090/api/ask-enhanced', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            api_provider: apiProvider,
+            api_key: apiKey,
+            name: userName,
+            level: brainLevel,
+            subject: subject,
+            grade: grade,
+            question: question,
+            focus_mode: currentFocusMode,
+            session_id: sessionId
+          })
+        });
+
+        const result = await response.json();
+        showLoading(false);
+
+        if (result.success) {
+          addMessage(result.answer, 'ai', result.focus_mode, result.model_used, result.interactive_html);
+          conversationCount++;
+          updateConversationStats();
+        } else {
+          showError(`❌ Error: ${result.error}${result.error_details ? '<br><br><small>' + result.error_details + '</small>' : ''}`);
+        }
+      } catch (error) {
+        showLoading(false);
+        if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+          showError(`❌ Backend server tidak berjalan!\n\nSilakan jalankan backend server terlebih dahulu:\n1. Buka terminal/command prompt\n2. Masuk ke folder MATA v.2.0\n3. Jalankan: python mata_v2.5.py\n4. Tunggu sampai server berjalan di http://localhost:8090\n5. Refresh halaman ini`);
+        } else {
+          showError(`❌ Network error: ${error.message}<br><br><small>Periksa koneksi internet Anda.</small>`);
+        }
+      }
+    }
+
+    // Generate problem
+    async function generateProblem() {
+      const subject = document.getElementById('subject').value;
+      const grade = document.getElementById('grade').value;
+      const apiProvider = document.getElementById('apiProvider').value;
+      const apiKey = document.getElementById('apiKey').value;
+      const userName = document.getElementById('userName').value;
+
+      if (!apiKey) {
+        showError('⚠️ API key belum diatur!');
+        return;
+      }
+
+      addMessage(`Tolong buatkan soal ${subject} untuk tingkat ${grade}`, 'user');
+      showLoading(true);
+
+      try {
+        const response = await fetch('http://localhost:8090/api/generate-problem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            api_provider: apiProvider,
+            api_key: apiKey,
+            name: userName,
+            subject: subject,
+            grade: grade,
+            session_id: sessionId
+          })
+        });
+
+        const result = await response.json();
+        showLoading(false);
+
+        if (result.success) {
+          addMessage(result.answer, 'ai', result.focus_mode, result.model_used, result.interactive_html);
+          conversationCount++;
+          updateConversationStats();
+        } else {
+          showError(`❌ Error: ${result.error}`);
+        }
+      } catch (error) {
+        showLoading(false);
+        if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+          showError(`❌ Backend server tidak berjalan!\n\nSilakan jalankan backend server terlebih dahulu:\n1. Buka terminal/command prompt\n2. Masuk ke folder MATA v.2.0\n3. Jalankan: python mata_v2.5.py\n4. Tunggu sampai server berjalan di http://localhost:8090\n5. Refresh halaman ini`);
+        } else {
+          showError(`❌ Error: ${error.message}`);
+        }
+      }
+    }
+
+    // Select focus mode
+    function selectFocusMode(mode) {
+      currentFocusMode = mode;
+      
+      // Update UI
+      document.querySelectorAll('.focus-mode').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      const modeElement = document.querySelector(`[data-mode="${mode}"]`);
+      if (modeElement) {
+        modeElement.classList.add('active');
+      }
+      
+      // Update placeholder
+      const inputElement = document.getElementById('questionInput');
+      if (mode === 'jawab_soal') {
+        inputElement.placeholder = 'Masukkan soal matematika yang ingin diselesaikan...';
+      } else if (mode === 'penjelasan') {
+        inputElement.placeholder = 'Tanyakan konsep atau topik yang ingin dijelaskan...';
+      } else if (mode === 'analisis') {
+        inputElement.placeholder = 'Masukkan topik yang ingin dianalisis secara mendalam...';
+      }
+    }
+
+    // Update provider info
+    function updateProviderInfo() {
+      const provider = document.getElementById('apiProvider').value;
+      const infoDiv = document.getElementById('providerInfo');
+      
+      if (provider === 'claude') {
+        infoDiv.innerHTML = 'Masukkan API key dari <strong>Anthropic Console</strong><br>Format: sk-ant-api03-...';
+      } else if (provider === 'openai') {
+        infoDiv.innerHTML = 'Masukkan API key dari <strong>OpenAI Platform</strong><br>Format: sk-proj-...';
+      }
+    }
+
+    // Save settings
+    function saveSettings() {
+      const settings = {
+        apiProvider: document.getElementById('apiProvider').value,
+        apiKey: document.getElementById('apiKey').value,
+        userName: document.getElementById('userName').value,
+        brainLevel: document.getElementById('brainLevel').value,
+        subject: document.getElementById('subject').value,
+        grade: document.getElementById('grade').value,
+        focusMode: currentFocusMode
+      };
+      
+      localStorage.setItem('mataSettings', JSON.stringify(settings));
+      alert('✅ Pengaturan berhasil disimpan!');
+    }
+
+    // Load settings
+    function loadSettings() {
+      const savedSettings = localStorage.getItem('mataSettings');
+      if (savedSettings) {
+        try {
+          const settings = JSON.parse(savedSettings);
+          document.getElementById('apiProvider').value = settings.apiProvider || 'claude';
+          document.getElementById('apiKey').value = settings.apiKey || '';
+          document.getElementById('userName').value = settings.userName || 'Siswa';
+          document.getElementById('brainLevel').value = settings.brainLevel || 'auto';
+          document.getElementById('subject').value = settings.subject || 'Matematika';
+          document.getElementById('grade').value = settings.grade || 'Kuliah';
+          
+          if (settings.focusMode) {
+            selectFocusMode(settings.focusMode);
+          }
+          
+          updateProviderInfo();
+        } catch (e) {
+          console.log('Error loading settings:', e);
+        }
+      }
+    }
+
+    // Reset settings
+    function resetSettings() {
+      if (confirm('🗑️ Yakin ingin menghapus semua pengaturan?')) {
+        localStorage.removeItem('mataSettings');
+        location.reload();
+      }
+    }
+
+    // Reset chat
+    function resetChat() {
+      if (confirm('🗑️ Yakin ingin menghapus riwayat chat?')) {
+        conversationCount = 0;
+        sessionId = generateSessionId();
+        updateConversationStats();
+        
+        const chatHistoryDiv = document.getElementById('chatHistory');
+        chatHistoryDiv.innerHTML = `
+            <div class="ai-message">
+                <strong>🤖 Chat history cleared! Starting fresh conversation...</strong><br>
+                Silakan mulai dengan pertanyaan baru! 🚀
+            </div>
+        `;
+      }
+    }
+
+    // Create particles
+    function createParticles() {
+      const particlesContainer = document.getElementById('particles');
+      for (let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = `${i * 2 % 100}%`;
+        particle.style.top = `${i * 3 % 100}%`;
+        particle.style.animationDelay = `${i % 6}s`;
+        particle.style.animationDuration = `${4 + (i % 4)}s`;
+        particlesContainer.appendChild(particle);
+      }
+    }
+
+    // Create personalized greeting
+    async function createPersonalizedGreeting() {
+      const username = localStorage.getItem('mataUsername');
+      const loginTime = localStorage.getItem('mataLoginTime');
+      
+      if (!username) return;
+      
+      // Get current time info
+      const now = new Date();
+      const loginDate = new Date(loginTime);
+      const timeOfDay = now.getHours() < 12 ? 'pagi' : now.getHours() < 18 ? 'siang' : 'malam';
+      
+      // Update sidebar welcome message
+      const welcomeMessageDiv = document.getElementById('welcomeMessage');
+      if (welcomeMessageDiv) {
+        welcomeMessageDiv.innerHTML = `👋 Selamat datang,<br><strong>${username}!</strong>`;
+      }
+      
+      // Create personalized greeting message for chat
+      const greetingMessage = `
+        <strong>👋 Halo ${username}!</strong><br><br>
+        
+        Selamat datang kembali di <strong>MATA v2.5</strong>! 🎓<br>
+        Waktu login: ${loginDate.toLocaleString('id-ID')}<br>
+        Selamat ${timeOfDay}! 🌅<br><br>
+        
+        ✨ <strong>Fitur Baru v2.5 (Frontend-Backend Edition):</strong><br>
+        🎨 <strong>Stable Frontend</strong> - Interface yang stabil dan responsif!<br>
+        🔧 <strong>Backend API</strong> - AI integration yang dapat diupgrade tanpa mengganggu UI<br>
+        🧠 <strong>Mode AI Eksplisit</strong> - Pilih fokus: Penjelasan, Jawab Soal, atau Analisis<br>
+        🎨 <strong>Interface Elegan</strong> - Background chat putih dengan balloon ungu<br>
+        🔧 <strong>Fitur Tambahan</strong> - Visualisasi, Animasi, Generate Soal, Referensi<br><br>
+        
+        📚 <strong>Cara Menggunakan:</strong><br>
+        1. Masukkan API key di Configuration<br>
+        2. Pilih <strong>Mode Fokus</strong> sesuai kebutuhan<br>
+        3. Ketik pertanyaan atau soal Anda<br>
+        4. AI akan merespons sesuai mode yang dipilih<br><br>
+        
+        🧠 <strong>Memory Active</strong> - Saya ingat konteks percakapan<br>
+        📋 <strong>Auto-Structured</strong> - Respons terstruktur sesuai mode<br><br>
+        
+        <div id="api-status" style="background: rgba(102, 126, 234, 0.1); padding: 10px; border-radius: 8px; margin-top: 10px;">
+          <strong>🔄 Status:</strong> <span id="status-text">Ready to connect to backend API</span><br>
+          <small style="color: #666; margin-top: 5px; display: block;">
+            <strong>⚠️ Important:</strong> Pastikan backend server sudah berjalan di http://localhost:8090
+          </small>
+        </div>
+        
+        <strong>Pilih mode dan mulai belajar, ${username}!</strong> 🚀
+      `;
+      
+      // Update initial welcome message in chat
+      const initialWelcomeMessageDiv = document.getElementById('initialWelcomeMessage');
+      if (initialWelcomeMessageDiv) {
+        initialWelcomeMessageDiv.innerHTML = greetingMessage;
+      }
+      
+      // Try to get AI greeting if API is available
+      await getAIGreeting(username, timeOfDay);
+    }
+
+    // Get AI-powered greeting
+    async function getAIGreeting(username, timeOfDay) {
+      const apiProvider = document.getElementById('apiProvider').value;
+      const apiKey = document.getElementById('apiKey').value;
+      
+      // Only try AI greeting if API key is available
+      if (!apiKey) {
+        return;
+      }
+      
+      try {
+        const greetingPrompt = `Halo! Saya adalah AI tutor MATA v2.5. Tolong buatkan sapaan yang hangat dan personal untuk user bernama "${username}" pada waktu ${timeOfDay}. Sapaan harus singkat (maksimal 2-3 kalimat), ramah, dan memotivasi untuk belajar matematika. Gunakan emoji yang sesuai.`;
+        
+        const response = await fetch('http://localhost:8090/api/ask-enhanced', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            api_provider: apiProvider,
+            api_key: apiKey,
+            name: username,
+            level: 'auto',
+            subject: 'Matematika',
+            grade: 'SMA',
+            question: greetingPrompt,
+            focus_mode: 'penjelasan',
+            session_id: sessionId
+          })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          // Add AI greeting as a separate message
+          setTimeout(() => {
+            addMessage(result.answer, 'ai', 'penjelasan', result.model_used);
+          }, 2000); // Delay 2 seconds after welcome message
+        }
+      } catch (error) {
+        console.log('AI greeting failed:', error);
+        // Silently fail - not critical
+      }
+    }
+
+    // Initialize application
+    function initApp() {
+      console.log('🚀 Initializing MATA v2.5 Frontend...');
+      
+      // Check login status first
+      if (!checkLoginStatus()) {
+        return;
+      }
+      
+      sessionId = generateSessionId();
+      createParticles();
+      loadSettings();
+      updateConversationStats();
+      createPersonalizedGreeting();
+      
+      // Setup focus mode selection
+      document.querySelectorAll('.focus-mode').forEach(modeElement => {
+        const mode = modeElement.getAttribute('data-mode');
+        modeElement.addEventListener('click', () => selectFocusMode(mode));
+      });
+      
+      // Setup provider change event
+      document.getElementById('apiProvider').addEventListener('change', updateProviderInfo);
+      
+      // Setup Enter key for question input
+      document.getElementById('questionInput').addEventListener('keypress', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault();
+          sendQuestion();
+        }
+      });
+      
+      // Update status
+      const statusText = document.getElementById('status-text');
+      if (statusText) {
+        statusText.innerHTML = '✅ Frontend Ready!';
+        statusText.style.color = '#3498db';
+      }
+      
+      console.log('✅ MATA v2.5 Frontend System ready!');
+    }
+
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+
+  <script>
+    // Additional UI functions
+    
+    function toggleSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      const toggleBtn = document.getElementById('toggleSidebar');
+      
+      sidebar.classList.toggle('hidden');
+      
+      if (sidebar.classList.contains('hidden')) {
+        toggleBtn.classList.remove('sidebar-open');
+        toggleBtn.innerHTML = '☰';
+        toggleBtn.style.right = '300px'; // Keep close to sidebar position
+        toggleBtn.style.left = 'auto'; // Reset left position
+      } else {
+        toggleBtn.classList.add('sidebar-open');
+        toggleBtn.innerHTML = '✕';
+        toggleBtn.style.right = '300px'; // Keep close to sidebar position
+        toggleBtn.style.left = 'auto'; // Reset left position
+      }
+    }
+
+    function toggleMenu(menuId) {
+      const menuContent = document.getElementById(menuId);
+      const menuHeader = menuContent.previousElementSibling;
+      
+      // Toggle current menu
+      menuContent.classList.toggle('active');
+      menuHeader.classList.toggle('active');
+    }
+
+    function showFeatureInfo(feature) {
+      let message = '';
+      switch(feature) {
+        case 'visualisasi':
+          message = '📈 Fitur Visualisasi akan menghasilkan grafik matematis menggunakan matplotlib berdasarkan konteks pembicaraan untuk membantu pemahaman visual dari konsep yang sedang dipelajari.';
+          break;
+        case 'animasi':
+          message = '🎬 Fitur Animasi Interaktif akan membuat animasi step-by-step untuk menjelaskan proses atau konsep kompleks secara visual dan interaktif.';
+          break;
+        case 'referensi':
+          message = '📖 Fitur Referensi akan menyediakan sumber bacaan tambahan, link, atau material referensi yang relevan dengan topik yang sedang dipelajari.';
+          break;
+      }
+      alert(message);
+    }
+
+    // Generate matplotlib visualization based on conversation context
+    async function generateVisualization() {
+      if (!sessionId) {
+        showError('💡 Mulai percakapan terlebih dahulu untuk membuat visualisasi yang relevan!');
+        return;
+      }
+
+      addMessage(`Tolong buatkan visualisasi berdasarkan konteks pembicaraan sebelumnya`, 'user');
+      showLoading(true);
+
+      try {
+        const response = await fetch('http://localhost:8090/api/generate-visualization', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId
+          })
+        });
+
+        const result = await response.json();
+        showLoading(false);
+
+        if (result.success) {
+          // Add visualization to chat
+          addVisualizationToChat(result.image_path, result.description, result.visualization_type);
+          conversationCount++;
+          updateConversationStats();
+        } else {
+          showError(`❌ Error generating visualization: ${result.error}`);
+        }
+      } catch (error) {
+        showLoading(false);
+        if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+          showError(`❌ Backend server tidak berjalan!\n\nSilakan jalankan backend server terlebih dahulu:\n1. Buka terminal/command prompt\n2. Masuk ke folder MATA v.2.1\n3. Jalankan: python mata_v2.5.py\n4. Tunggu sampai server berjalan di http://localhost:8090\n5. Refresh halaman ini`);
+        } else {
+          showError(`❌ Error: ${error.message}`);
+        }
+      }
+    }
+
+    function addVisualizationToChat(imagePath, description, vizType) {
+      const chatHistory = document.getElementById('chatHistory');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'ai-message';
+      
+      messageDiv.innerHTML = `
+        <strong>📈 Visualisasi Matematis: ${vizType}</strong><br><br>
+        ${description}<br><br>
+        <div class="visualization-container">
+          <img src="${imagePath}" alt="Mathematical Visualization" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+        </div>
+      `;
+      
+      chatHistory.appendChild(messageDiv);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    // Setup sidebar toggle
+    document.getElementById('toggleSidebar').addEventListener('click', toggleSidebar);
+  </script>
+</body>
+</html>
